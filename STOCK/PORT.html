@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบจำลองพอร์ตการลงทุน & ข่าวตลาดหุ้น</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="PORT Color.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- แถบเมนูด้านบน -->
+  <header class="app-header">
+    <div class="container header-content">
+      <div>
+        <div class="title-row">
+          <h1>ระบบจำลองพอร์ตการลงทุน (Mock Stock Pro)</h1>
+          <span id="liveBadge" class="live-badge"><span class="dot"></span> ตลาดเปิดจำลองอัตโนมัติ</span>
+        </div>
+        <p class="subtitle">ฝึกบริหารเงินทุน 1,000,000 บาท วิเคราะห์กราฟราคาตามข่าว และคำนวณต้นทุนพอร์ตแบบเรียลไทม์</p>
+      </div>
+
+      <div class="header-controls">
+        <div class="mode-switch">
+          <button type="button" id="userModeBtn" class="mode-btn active">โหมดนักลงทุน (User)</button>
+          <button type="button" id="adminModeBtn" class="mode-btn">ผู้ดูแลระบบ (Admin)</button>
+        </div>
+        <a href="#userGuideSection" class="btn btn-info">สิ่งที่ผู้ใช้ควรรู้</a>
+        <button type="button" id="resetSystemBtn" class="btn btn-danger-outline">เริ่มใหม่ (1 ล้าน ฿)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- แถบข่าวด่วนกระทบราคาหุ้น (Breaking News Ticker) -->
+    <section id="breakingNewsBanner" class="news-banner neutral-news">
+      <div class="news-banner-left">
+        <span id="bannerTag" class="news-tag tag-neutral">ข่าวตลาด</span>
+        <strong id="bannerHeadline">ตลาดเปิดทำการปกติ นักลงทุนจับตาทิศทางผลประกอบการไตรมาสล่าสุด</strong>
+      </div>
+      <div class="sim-controls">
+        <button type="button" id="toggleSimBtn" class="btn btn-sm btn-dark">หยุดเวลาชั่วคราว</button>
+        <button type="button" id="stepTickBtn" class="btn btn-sm btn-light">เดินตลาด +1 รอบ</button>
+        <button type="button" id="triggerNewsBtn" class="btn btn-sm btn-warning">สุ่มข่าวด่วนทันที</button>
+      </div>
+    </section>
+
+    <!-- แผงควบคุมสำหรับ Admin (ซ่อนอยู่เมื่อเป็นโหมด User) -->
+    <section id="adminPanel" class="card admin-panel hidden">
+      <div class="admin-header">
+        <h3>แผงควบคุมผู้ดูแลระบบ (Admin Control Center)</h3>
+        <span class="admin-badge">สิทธิ์ผู้ดูแลระบบ</span>
+      </div>
+      <div class="admin-grid">
+        <!-- ฟอร์มปล่อยข่าวด่วน -->
+        <form id="adminNewsForm" class="admin-box">
+          <h4>1. ประกาศข่าวด่วนเข้าสู่ตลาด (กำหนดทิศทางกราฟ)</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="adminNewsTarget">หุ้นที่ได้รับผลกระทบ</label>
+              <select id="adminNewsTarget"></select>
+            </div>
+            <div class="form-group">
+              <label for="adminNewsImpact">ระดับผลกระทบต่อราคา</label>
+              <select id="adminNewsImpact">
+                <option value="0.08">ข่าวดีมาก (ราคาพุ่ง +8%)</option>
+                <option value="0.04">ข่าวดี (ราคาขึ้น +4%)</option>
+                <option value="-0.04">ข่าวร้าย (ราคาลง -4%)</option>
+                <option value="-0.08">ข่าววิกฤต (ราคาร่วง -8%)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="adminNewsHeadline">พาดหัวข่าว</label>
+            <input type="text" id="adminNewsHeadline" placeholder="เช่น PTT ประกาศกำไรทุบสถิติ จ่ายปันผลพิเศษสูงกว่าคาด" required />
+          </div>
+          <button type="submit" class="btn btn-warning full-width">ประกาศข่าวและอัปเดตราคาทันที</button>
+        </form>
+
+        <!-- ฟอร์มเพิ่มหุ้นใหม่ / แก้ราคา -->
+        <form id="adminStockForm" class="admin-box">
+          <h4>2. เพิ่มหุ้นใหม่เข้ากระดาน / ปรับราคาตลาดโดยตรง</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="adminStockSymbol">รหัสหุ้น (Symbol)</label>
+              <input type="text" id="adminStockSymbol" placeholder="เช่น SCGP, TRUE" required />
+            </div>
+            <div class="form-group">
+              <label for="adminStockPrice">ราคาตลาด (บาท)</label>
+              <input type="number" id="adminStockPrice" step="0.01" min="0.1" placeholder="เช่น 28.50" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="adminStockName">ชื่อบริษัท / รายละเอียด</label>
+              <input type="text" id="adminStockName" placeholder="เช่น บมจ. เอสซีจี แพคเกจจิ้ง" required />
+            </div>
+            <div class="form-group">
+              <label for="adminStockSector">กลุ่มอุตสาหกรรม</label>
+              <input type="text" id="adminStockSector" placeholder="เช่น บรรจุภัณฑ์ / สื่อสาร" required />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary full-width">บันทึกข้อมูลหุ้นเข้ากระดาน</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- การ์ดสรุปมูลค่าพอร์ต 4 ใบ -->
+    <section class="summary-grid">
+      <div class="card summary-card">
+        <span class="card-label">มูลค่าพอร์ตรวมทั้งหมด (เงินสด + หุ้น)</span>
+        <h2 id="totalNetWorth" class="card-value">1,000,000.00 ฿</h2>
+        <span id="totalReturnPct" class="card-sub neutral">0.00% จากทุนเริ่มต้น 1,000,000 ฿</span>
+      </div>
+      <div class="card summary-card">
+        <span class="card-label">เงินสดคงเหลือพร้อมลงทุน (Cash)</span>
+        <h2 id="cashBalance" class="card-value text-primary">1,000,000.00 ฿</h2>
+        <span id="stockMarketValueSub" class="card-sub">มูลค่าหุ้นที่ถืออยู่: 0.00 ฿</span>
+      </div>
+      <div class="card summary-card">
+        <span class="card-label">กำไร/ขาดทุนที่ยังไม่รับรู้ (Unrealized P/L)</span>
+        <h2 id="totalUnrealizedPL" class="card-value neutral">0.00 ฿</h2>
+        <span class="card-sub">คำนวณจากราคาตลาดปัจจุบันเทียบต้นทุน</span>
+      </div>
+      <div class="card summary-card">
+        <span class="card-label">กำไร/ขาดทุนที่รับรู้แล้ว (Realized P/L)</span>
+        <h2 id="totalRealizedPL" class="card-value neutral">0.00 ฿</h2>
+        <span class="card-sub">กำไร/ขาดทุนสะสมจากการกดขายจริง</span>
+      </div>
+    </section>
+
+    <!-- ส่วนที่ 1: กระดานหุ้น + กราฟราคาหุ้นตามข่าว -->
+    <section class="market-grid">
+      <!-- กระดานราคาหุ้น -->
+      <div class="card">
+        <div class="section-header">
+          <h3 class="section-title">กระดานราคาหุ้น (Market Watch)</h3>
+          <span class="hint-text">คลิกที่ชื่อหุ้นเพื่อดูกราฟและส่งคำสั่งซื้อขาย</span>
+        </div>
+        <div class="table-responsive">
+          <table class="market-table">
+            <thead>
+              <tr>
+                <th>หุ้น</th>
+                <th>กลุ่ม</th>
+                <th class="text-right">ราคาล่าสุด</th>
+                <th class="text-right">เปลี่ยนแปลง</th>
+              </tr>
+            </thead>
+            <tbody id="marketTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- กราฟราคาหุ้นรายตัว & ผลกระทบจากข่าว -->
+      <div class="card chart-panel">
+        <div class="section-header">
+          <div>
+            <h3 id="selectedStockTitle" class="section-title">กราฟราคาหุ้น: PTT</h3>
+            <p id="selectedStockDesc" class="hint-text">บมจ. ปตท. | กลุ่มพลังงานและสาธารณูปโภค</p>
+          </div>
+          <div class="stock-price-box">
+            <span id="selectedStockPrice" class="big-price">34.50 ฿</span>
+            <span id="selectedStockChange" class="price-change neutral">0.00%</span>
+          </div>
+        </div>
+        <div class="line-chart-wrapper">
+          <canvas id="stockPriceChart"></canvas>
+        </div>
+        <div id="selectedStockNewsBox" class="stock-latest-news">
+          <strong>ข่าวล่าสุดที่เกี่ยวกับหุ้นนี้:</strong> <span id="selectedStockLatestNews">ยังไม่มีข่าวด่วนเฉพาะตัว ราคาเคลื่อนไหวตามภาวะตลาด</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ส่วนที่ 2: ส่งคำสั่งซื้อขาย + กราฟสัดส่วนพอร์ต -->
+    <section class="trade-grid">
+      <!-- ฟอร์มส่งคำสั่งซื้อขาย -->
+      <div class="card">
+        <h3 class="section-title">ส่งคำสั่งซื้อ / ขาย (Order Execution)</h3>
+        <form id="orderForm" class="order-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="orderSymbol">เลือกหุ้นที่ต้องการเทรด</label>
+              <select id="orderSymbol" required></select>
+            </div>
+            <div class="form-group">
+              <label for="orderType">คำสั่ง (Action)</label>
+              <select id="orderType" required>
+                <option value="BUY">ซื้อหุ้น (BUY)</option>
+                <option value="SELL">ขายหุ้น (SELL)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="orderPrice">ราคาตลาดปัจจุบัน (บาท/หุ้น)</label>
+              <input type="text" id="orderPrice" readonly class="readonly-input" />
+            </div>
+            <div class="form-group">
+              <label for="orderQty">จำนวนหุ้นที่ต้องการ</label>
+              <input type="number" id="orderQty" min="1" step="1" placeholder="ระบุจำนวนหุ้น" required />
+            </div>
+          </div>
+
+          <!-- ปุ่มลัดเลือกสัดส่วนเงิน/หุ้น -->
+          <div class="quick-pct-row">
+            <span class="hint-text">เลือกสัดส่วนด่วน:</span>
+            <button type="button" class="pct-btn" data-pct="0.25">25%</button>
+            <button type="button" class="pct-btn" data-pct="0.50">50%</button>
+            <button type="button" class="pct-btn" data-pct="0.75">75%</button>
+            <button type="button" class="pct-btn" data-pct="1.00">100% (สูงสุด)</button>
+          </div>
+
+          <div class="order-summary-box">
+            <div class="summary-line">
+              <span>มูลค่าคำสั่งซื้อขายรวม:</span>
+              <strong id="orderEstimatedTotal">0.00 บาท</strong>
+            </div>
+            <div class="summary-line">
+              <span id="orderPowerLabel">กำลังซื้อสูงสุด (จากเงินสดที่มี):</span>
+              <span id="orderMaxPower">0 หุ้น</span>
+            </div>
+          </div>
+
+          <button type="submit" id="executeOrderBtn" class="btn btn-buy full-width">ยืนยันคำสั่งซื้อ (BUY)</button>
+        </form>
+      </div>
+
+      <!-- กราฟสัดส่วนพอร์ต -->
+      <div class="card">
+        <h3 class="section-title">สัดส่วนสินทรัพย์ในพอร์ต (Asset Allocation)</h3>
+        <div class="doughnut-wrapper">
+          <canvas id="allocationChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ส่วนที่ 3: ฟีดข่าวตลาดหุ้น + พอร์ตหุ้นที่ถือครอง -->
+    <section class="bottom-grid">
+      <!-- ฟีดข่าวตลาดหุ้น -->
+      <div class="card">
+        <div class="section-header">
+          <h3 class="section-title">ฟีดข่าวเศรษฐกิจและตลาดหุ้น (Live News Feed)</h3>
+          <span class="hint-text">ข่าวมีผลต่อราคาหุ้นโดยตรง</span>
+        </div>
+        <div id="newsFeedList" class="news-feed-list"></div>
+      </div>
+
+      <!-- ตารางหุ้นที่ถือครอง -->
+      <div class="card">
+        <div class="section-header">
+          <h3 class="section-title">หุ้นที่ถือครองในพอร์ต (My Holdings)</h3>
+          <span class="hint-text">คำนวณต้นทุนเฉลี่ยอัตโนมัติ</span>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>หุ้น</th>
+                <th class="text-right">จำนวน</th>
+                <th class="text-right">ต้นทุนเฉลี่ย</th>
+                <th class="text-right">ราคาตลาด</th>
+                <th class="text-right">มูลค่ารวม</th>
+                <th class="text-right">กำไร/ขาดทุน</th>
+                <th class="text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="holdingsBody"></tbody>
+          </table>
+        </div>
+        <p id="holdingsEmptyState" class="empty-state">ยังไม่มีหุ้นในพอร์ต เลือกหุ้นจากกระดานด้านบนเพื่อเริ่มลงทุน</p>
+      </div>
+    </section>
+
+    <!-- ส่วนที่ 4: ประวัติการซื้อขาย -->
+    <section class="card table-section">
+      <h3 class="section-title">ประวัติคำสั่งซื้อขายทั้งหมด (Transaction History)</h3>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>วัน-เวลา</th>
+              <th>ชื่อหุ้น</th>
+              <th>คำสั่ง</th>
+              <th class="text-right">จำนวนหุ้น</th>
+              <th class="text-right">ราคาต่อหุ้น</th>
+              <th class="text-right">มูลค่ารวม</th>
+              <th class="text-right">กำไร/ขาดทุนที่รับรู้</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+      <p id="historyEmptyState" class="empty-state">ยังไม่มีประวัติการทำรายการซื้อขาย</p>
+    </section>
+
+    <!-- ส่วนที่ 5: คู่มือสิ่งที่ผู้ใช้ควรรู้ -->
+    <section id="userGuideSection" class="card guide-section">
+      <h3 class="section-title">คู่มือการใช้งานและสิ่งที่นักลงทุนควรรู้</h3>
+      <div class="guide-grid">
+        <div class="guide-item">
+          <h4>1. เงินทุนจำลองและระบบบัญชี</h4>
+          <p>ระบบมอบเงินสดตั้งต้น <strong>1,000,000.00 บาท</strong> เมื่อกดซื้อหุ้น เงินสดจะถูกหักตามมูลค่าจริง และเมื่อกดขาย เงินสดจะกลับเข้าพอร์ตทันที ข้อมูลทั้งหมดถูกบันทึกอัตโนมัติในเบราว์เซอร์ (localStorage)</p>
+        </div>
+        <div class="guide-item">
+          <h4>2. กลไกกราฟขึ้นลงตามข่าว</h4>
+          <p>ราคาหุ้นในกระดานจะผันผวนตามรอบเวลา และเมื่อมี <strong>ข่าวด่วน (Breaking News)</strong> เข้ามา ข่าวดีจะดันราคาหุ้นที่เกี่ยวข้องพุ่งขึ้น (+3% ถึง +8%) ส่วนข่าวร้ายจะกดดันให้ราคาร่วงลง (-3% ถึง -8%) นักลงทุนควรอ่านข่าวก่อนตัดสินใจ</p>
+        </div>
+        <div class="guide-item">
+          <h4>3. วิธีคำนวณต้นทุนและกำไร/ขาดทุน</h4>
+          <p><strong>ต้นทุนเฉลี่ย (Avg Cost):</strong> คำนวณแบบถ่วงน้ำหนักเมื่อซื้อหุ้นตัวเดิมเพิ่มหลายรอบ<br />
+          <strong>Unrealized P/L:</strong> กำไร/ขาดทุนทางตัวเลขของหุ้นที่ยังถืออยู่<br />
+          <strong>Realized P/L:</strong> กำไร/ขาดทุนที่เกิดขึ้นจริงเมื่อกดขายหุ้นออกไปแล้ว</p>
+        </div>
+        <div class="guide-item">
+          <h4>4. การบริหารความเสี่ยง (Risk Management)</h4>
+          <p>ไม่ควรนำเงินทั้งหมดทุ่มซื้อหุ้นตัวเดียว (All-in) ควรกระจายการลงทุนหลายกลุ่มอุตสาหกรรม และดูกราฟสัดส่วนพอร์ต (Asset Allocation) เพื่อรักษาสมดุลระหว่างเงินสดและหุ้น</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="PORT.js"></script>
+</body>
+</html>
